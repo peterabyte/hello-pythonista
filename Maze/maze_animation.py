@@ -1,15 +1,14 @@
 from scene import run, Scene
 from math import floor
-from mazes import random_maze, maze
-from strategies import keep_left
+from mazes import maze
+from strategies import left_hand, right_hand, random_mouse
 
 class MazeAnimation (Scene):
 	def setup(self):
 		self.background_color = '#82561c'
-		#self.maze = random_maze()
-		self.maze = maze(3)
+		self.maze = maze()
 		self.maze.setup(self)
-		self.strategy = keep_left(self.maze)	
+		self.strategy = random_mouse(self.maze)	
 	
 	def update(self):
 		if self.maze.finished():

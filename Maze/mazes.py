@@ -2,12 +2,9 @@ from scene import Scene, SpriteNode
 import random
 from enum import Enum
 
-def random_maze():
-	maze_idx = random.randint(0, len(mazes) - 1)
+def maze(idx = None):
+	maze_idx = idx if idx != None and idx >= 0 and idx < len(mazes) else random.randint(0, len(mazes) - 1)
 	return Maze(mazes[maze_idx])
-
-def maze(idx):
-	return Maze(mazes[idx])
 
 class Direction(Enum):
 	LEFT = 1
