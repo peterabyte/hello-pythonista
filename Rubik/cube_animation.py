@@ -101,17 +101,20 @@ class MyScene (Scene):
 
 	def setup(self):
 		faces = [
-			Face([(-1, 1, -1), (1, 1, -1), (1, -1, -1), (-1, -1, -1)], (255,0,0), FaceSide.FRONT),   #front face
-			Face([(1, 1, -1), (1, 1, 1), (1, -1, 1), (1, -1, -1)], (0,255,0), FaceSide.RIGHT),       #right face
-			Face([(-1, 1, -1), (1, 1, -1), (1, 1, 1), (-1, 1, 1)], (0,0,255), FaceSide.TOP),       #top face
-			Face([(-1, -1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1)], (255,255,0), FaceSide.BOTTOM),   #bottom face
-			Face([(-1, 1, -1), (-1, 1, 1), (-1, -1, 1), (-1, -1, -1)], (255,0,255), FaceSide.LEFT),   #left face
-			Face([(-1, 1, 1), (1, 1, 1), (1, -1, 1), (-1, -1, 1)], (0,255,255), FaceSide.BACK)       #back face
+			Face([(-1, 1, -1), (1, 1, -1), (1, -1, -1), (-1, -1, -1)], (255,0,0), FaceSide.FRONT),
+			Face([(1, 1, -1), (1, 1, 1), (1, -1, 1), (1, -1, -1)], (0,255,0), FaceSide.RIGHT),
+			Face([(-1, 1, -1), (1, 1, -1), (1, 1, 1), (-1, 1, 1)], (0,0,255), FaceSide.TOP),
+			Face([(-1, -1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1)], (255,255,0), FaceSide.BOTTOM),
+			Face([(-1, 1, -1), (-1, 1, 1), (-1, -1, 1), (-1, -1, -1)], (255,0,255), FaceSide.LEFT),
+			Face([(-1, 1, 1), (1, 1, 1), (1, -1, 1), (-1, -1, 1)], (0,255,255), FaceSide.BACK)
 		]
 		self.cube = Cube(faces)
-		self.plane = -8.5
-		self.focus = (0, 0, -10)
+		self.plane = -8
+		self.focus = (0.5, 0.1, -7)
+		self.focus_base = (0.5,0.1,-7)
 		self.rot = (0,0,0)
+		self.cube_rot = (0,0,0)
+		self.cube_center = (1,1,1)
 
 	def draw(self):
 
@@ -120,8 +123,12 @@ class MyScene (Scene):
 		stroke_weight(1)
 
 		self.rot = transform(self.rot, (1,1,1))
-		self.rot = (self.rot[0]%360, self.rot[1]%360, self.rot[2]%360)
-		#self.rot = (self.rot[0]%360, 45, 45)
+		#self.rot = (self.rot[0]%360, self.rot[1]%360, self.rot[2]%360)
+		self.rot = (20, 30, 0)
+		self.cube_rot = transform(self.cube_rot, (1,1,1))
+		self.cube_rot = (self.cube_rot[0]%360,0,0)
+		#self.focus = rotate(self.focus_base, 'z', self.cube_rot[0])
+		#print(rotate(rotate(rotate(self.focus, 'x', self.focus_rot[0]), 'y', self.focus_rot[1]), 'z', self.focus_rot[2]))
 
 		rotated_faces = []
 		for face in self.cube.faces:
