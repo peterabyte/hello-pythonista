@@ -3,7 +3,7 @@ import ui
 import numpy as np
 from math import radians, sin, cos
 
-CUBE_SIZE = 0.3
+CUBE_SIZE = 0.5
 CUBE_GAP = 1.01
 
 # Standard Rubik's Cube face colors
@@ -15,6 +15,7 @@ FACE_COLORS = {
   'left': (0, 0, 1),    # Blue
   'right': (0, 1, 0),   # Green
 }
+FACE_COLOR_INNER = 'black'
 
 FACES = [
   ([0, 1, 2, 3], 'back'),
@@ -38,16 +39,6 @@ def get_cube_vertices(center, size):
     c + [ d,  d,  d],
     c + [-d,  d,  d],
   ])
-
-def project(points, scale=100, offset=(300, 400)):
-  result = []
-  for x, y, z in points:
-    f = 3
-    factor = f / (f + z)
-    x2d = x * scale * factor + offset[0]
-    y2d = -y * scale * factor + offset[1]
-    result.append((x2d, y2d))
-  return result
 
 def rotation_matrix(axis, theta):
   c, s = cos(theta), sin(theta)
@@ -130,8 +121,8 @@ class RubiksView (ui.View):
 
   def update(self):
     # Physically rotate the cube a bit around both X and Y each frame
-    self.rotate_cube('y', radians(2))
-    self.rotate_cube('x', radians(1))
+    #self.rotate_cube('y', radians(2))
+    #self.rotate_cube('x', radians(1))
 
     # Example: rotate the top layer (y = +1) around cube's local Z axis
     # You can change axis/layer/angle for testing
@@ -163,6 +154,17 @@ class RubiksView (ui.View):
 
     # NOTE: call c.finalize_rotation() for those cubelets AFTER a full 90° turn completes
 
+  def project(self, points, scale=100):
+    offset = (self.width / 2, self.height / 2)
+    result = []
+    for x, y, z in points:
+      f = 3
+      factor = f / (f + z)
+      x2d = x * scale * factor + offset[0]
+      y2d = -y * scale * factor + offset[1]
+      result.append((x2d, y2d))
+    return result
+
   def draw(self):
     all_faces = []
 
@@ -172,7 +174,7 @@ class RubiksView (ui.View):
       verts_world = (self.local_offsets @ c.rotation.T) + c.center
 
       # We now draw in world coords (no extra global_R here, since we rotate the cube physically)
-      projected = project(verts_world)
+      projected = self.project(verts_world)
 
       x, y, z = c.grid_pos
       visible_faces = {
@@ -185,13 +187,14 @@ class RubiksView (ui.View):
       }
 
       for indices, face_name in FACES:
+        face_color = FACE_COLORS[face_name]
         if not visible_faces[face_name]:
-          continue
+          face_color = FACE_COLOR_INNER
 
         face3d = verts_world[indices]
         face2d = [projected[i] for i in indices]
         avg_depth = float(np.mean(face3d[:, 2]))
-        all_faces.append((avg_depth, face2d, FACE_COLORS[face_name], face3d))
+        all_faces.append((avg_depth, face2d, face_color, face3d))
 
     # Painter's algorithm with stable tie-breakers to avoid flicker
     all_faces.sort(key=lambda f: (round(f[0], 6),
@@ -203,4 +206,7 @@ class RubiksView (ui.View):
       draw_poly(pts, color)
 
 rubiks_view = RubiksView()
+rubiks_view.rotate_cube('y', radians(35))
+rubiks_view.rotate_cube('x', radians(-25))
+#rubiks_view.rotate_cube('z', radians(40))
 rubiks_view.present(style='full_screen', animated=False, hide_title_bar=True)
