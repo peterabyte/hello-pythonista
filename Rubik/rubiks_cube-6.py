@@ -2,211 +2,386 @@ import scene
 import ui
 import numpy as np
 from math import radians, sin, cos
+from collections import deque
+import random
+
+from cube_model import CubeModel
+from beginner_solver import BeginnerSolver
 
 CUBE_SIZE = 0.5
 CUBE_GAP = 1.01
 
 # Standard Rubik's Cube face colors
 FACE_COLORS = {
-  'front': (1, 0, 0),   # Red
-  'back': (1, 0.5, 0),  # Orange
-  'top': (1, 1, 1),     # White
-  'bottom': (1, 1, 0),  # Yellow
-  'left': (0, 0, 1),    # Blue
-  'right': (0, 1, 0),   # Green
+    'front': (1, 0, 0),     # Red
+    'back': (1, 0.5, 0),    # Orange
+    'top': (1, 1, 1),         # White
+    'bottom': (1, 1, 0),    # Yellow
+    'left': (0, 0, 1),        # Blue
+    'right': (0, 1, 0),     # Green
 }
-FACE_COLOR_INNER = 'black'
+FACE_COLOR_INNER = 'gray'
+FACE_COLOR_EDGE = 'black'
 
 FACES = [
-  ([0, 1, 2, 3], 'back'),
-  ([4, 5, 6, 7], 'front'),
-  ([0, 1, 5, 4], 'bottom'),
-  ([2, 3, 7, 6], 'top'),
-  ([1, 2, 6, 5], 'right'),
-  ([0, 3, 7, 4], 'left'),
+    ([0, 1, 2, 3], 'back'),
+    ([4, 5, 6, 7], 'front'),
+    ([0, 1, 5, 4], 'bottom'),
+    ([2, 3, 7, 6], 'top'),
+    ([1, 2, 6, 5], 'right'),
+    ([0, 3, 7, 4], 'left'),
 ]
 
+# ---------- UI integration helpers ----------
+
+# Map move notation to: (axis, layer_index, quarter_turns, direction)
+# Your cube local axes: x (L/R), y (D/U), z (B/F); layer_index: -1,0,1
+# Positive 90° around local axis uses right-hand rule.
+MOVE_MAP = {
+    'U':  ('y',  1, 1, +1),   "U'": ('y',  1, 1, -1),  'U2': ('y',  1, 2, +1),
+    'D':  ('y', -1, 1, -1),   "D'": ('y', -1, 1, +1),  'D2': ('y', -1, 2, +1),
+    'R':  ('x',  1, 1, +1),   "R'": ('x',  1, 1, -1),  'R2': ('x',  1, 2, +1),
+    'L':  ('x', -1, 1, -1),   "L'": ('x', -1, 1, +1),  'L2': ('x', -1, 2, +1),
+    'F':  ('z',  1, 1, +1),   "F'": ('z',  1, 1, -1),  'F2': ('z',  1, 2, +1),
+    'B':  ('z', -1, 1, -1),   "B'": ('z', -1, 1, +1),  'B2': ('z', -1, 2, +1),
+}
+
+def log(msg):
+    print(msg)
+
+def play_moves(view: 'RubiksView', moves, degrees_per_frame=9):
+    """
+    Queue a list of moves for animation. Call this once; it sets up
+    view._move_queue that update() will consume.
+    """
+    log(f"Play moves: {moves}")
+    view._move_queue = deque()
+    for token in moves:
+        axis, layer, q, dir_ = MOVE_MAP[token]
+        for _ in range(q):
+            # store a 90° turn broken into small steps
+            total = 90 * dir_
+            view._move_queue.append((axis, layer, total))
+    view._current_move = None
+    view._remaining = 0
+    view._step = degrees_per_frame
+
 def get_cube_vertices(center, size):
-  d = size / 2
-  c = np.array(center)
-  return np.array([
-    c + [-d, -d, -d],
-    c + [ d, -d, -d],
-    c + [ d,  d, -d],
-    c + [-d,  d, -d],
-    c + [-d, -d,  d],
-    c + [ d, -d,  d],
-    c + [ d,  d,  d],
-    c + [-d,  d,  d],
-  ])
-
-def rotation_matrix(axis, theta):
-  c, s = cos(theta), sin(theta)
-  if axis == 'x':
-    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
-  elif axis == 'y':
-    return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-  elif axis == 'z':
-    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-
-def rotation_matrix_from_vector(axis_vec, theta):
-  """Rotation matrix for arbitrary axis (Rodrigues)."""
-  axis_vec = axis_vec / np.linalg.norm(axis_vec)
-  x, y, z = axis_vec
-  c, s = cos(theta), sin(theta)
-  C = 1 - c
-  return np.array([
-    [c + x*x*C,   x*y*C - z*s, x*z*C + y*s],
-    [y*x*C + z*s, c + y*y*C,   y*z*C - x*s],
-    [z*x*C - y*s, z*y*C + x*s, c + z*z*C]
-  ])
-
-def draw_poly(pts, color):
-  path = ui.Path()
-  path.move_to(*pts[0])
-  for pt in pts[1:]:
-    path.line_to(*pt)
-  path.close()
-  ui.set_color(color)
-  path.fill()
-  ui.set_color('black')
-  path.stroke()
-
-class Cubelet:
-  def __init__(self, pos):
-    self.grid_pos = np.array(pos)
-    self.center = self.grid_pos * CUBE_SIZE * CUBE_GAP
-    self.rotation = np.identity(3)
-
-  # Rotate by a given 3x3 rotation matrix in world space
-  def rotate(self, R):
-    self.center = R @ self.center
-    self.rotation = R @ self.rotation
-
-  def finalize_rotation(self):
-    # snap using the actual spacing (size * gap)
-    spacing = CUBE_SIZE * CUBE_GAP
-    self.grid_pos = np.round(self.center / spacing).astype(int)
-    self.center = self.grid_pos * spacing
-
-class RubiksView (ui.View):
-  def __init__(self):
-    self.background_color = (0.5, 0.5, 0.5)
-    self.flex = 'WH'
-    self.update_interval = 0.05
-    self.global_R = np.identity(3)  # cube's physical orientation in world space
-    self.cubelets = [Cubelet((x, y, z)) for x in [-1, 0, 1]
-                                         for y in [-1, 0, 1]
-                                         for z in [-1, 0, 1]]
-
-    # handy base offsets for drawing (local cubelet corners)
-    d = CUBE_SIZE / 2.0
-    self.local_offsets = np.array([
-      [-d, -d, -d],  # 0
-      [ d, -d, -d],  # 1
-      [ d,  d, -d],  # 2
-      [-d,  d, -d],  # 3
-      [-d, -d,  d],  # 4
-      [ d, -d,  d],  # 5
-      [ d,  d,  d],  # 6
-      [-d,  d,  d],  # 7
+    d = size / 2
+    c = np.array(center)
+    return np.array([
+        c + [-d, -d, -d],
+        c + [ d, -d, -d],
+        c + [ d,    d, -d],
+        c + [-d,    d, -d],
+        c + [-d, -d,    d],
+        c + [ d, -d,    d],
+        c + [ d,    d,    d],
+        c + [-d,    d,    d],
     ])
 
-  # Rotate the WHOLE cube physically around a world axis
-  def rotate_cube(self, axis, angle_rad):
-    R = rotation_matrix(axis, angle_rad)
-    self.global_R = R @ self.global_R
-    for c in self.cubelets:
-      c.rotate(R)
+def rotation_matrix(axis, theta):
+    c, s = cos(theta), sin(theta)
+    if axis == 'x':
+        return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+    elif axis == 'y':
+        return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+    elif axis == 'z':
+        return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
-  def update(self):
-    # Physically rotate the cube a bit around both X and Y each frame
-    #self.rotate_cube('y', radians(2))
-    #self.rotate_cube('x', radians(1))
+def rotation_matrix_from_vector(axis_vec, theta):
+    """Rotation matrix for arbitrary axis (Rodrigues)."""
+    axis_vec = axis_vec / np.linalg.norm(axis_vec)
+    x, y, z = axis_vec
+    c, s = cos(theta), sin(theta)
+    C = 1 - c
+    return np.array([
+        [c + x*x*C,     x*y*C - z*s, x*z*C + y*s],
+        [y*x*C + z*s, c + y*y*C,     y*z*C - x*s],
+        [z*x*C - y*s, z*y*C + x*s, c + z*z*C]
+    ])
 
-    # Example: rotate the top layer (y = +1) around cube's local Z axis
-    # You can change axis/layer/angle for testing
-    self.rotate_slice('z', 1, radians(6))
+def draw_poly(pts, color):
+    path = ui.Path()
+    path.move_to(*pts[0])
+    for pt in pts[1:]:
+        path.line_to(*pt)
+    path.close()
+    ui.set_color(color)
+    path.fill()
+    ui.set_color(FACE_COLOR_EDGE)
+    path.stroke()
 
-    self.set_needs_display()
+class Cubelet:
+    def __init__(self, pos):
+        self.grid_pos = np.array(pos)
+        self.center = self.grid_pos * CUBE_SIZE * CUBE_GAP
+        self.rotation = np.identity(3)
 
-  def rotate_slice(self, axis, layer_index, angle_rad):
-    """
-    Rotate a slice around the cube's OWN axis (not world axes).
-    axis: 'x' | 'y' | 'z'  -> cube-local axis
-    layer_index: -1, 0, 1  -> which layer along that axis in cube-local coords
-    """
-    axis_index_map = {'x': 0, 'y': 1, 'z': 2}
-    ax = axis_index_map[axis]
+    # Rotate by a given 3x3 rotation matrix in world space
+    def rotate(self, R):
+        self.center = R @ self.center
+        self.rotation = R @ self.rotation
 
-    # Cube-local axis unit vector -> world axis via the cube's current orientation
-    local_axis = np.zeros(3)
-    local_axis[ax] = 1.0
-    world_axis = self.global_R @ local_axis  # rotate local axis into world space
+    def finalize_rotation(self):
+        # snap using the actual spacing (size * gap)
+        spacing = CUBE_SIZE * CUBE_GAP
+        self.grid_pos = np.round(self.center / spacing).astype(int)
+        self.center = self.grid_pos * spacing
 
-    # Build rotation about that world axis
-    R = rotation_matrix_from_vector(world_axis, angle_rad)
+class RubiksSolverButton:
+    def __init__(self, view, click):
+        self.btn = ui.Button(
+            title='Scramble',
+            bg_color='#55bcff',
+            tint_color='#fff',
+            corner_radius=9,
+            action=click
+        )
+        self.btn.center = (60, 40)
+        self.btn.height = 50
+        self.btn.width = 160
+        self._main_title = 'Scramble'
+        view.add_subview(self.btn)
 
-    # Rotate only the selected layer (membership defined in cube-local grid coords)
-    for c in self.cubelets:
-      if c.grid_pos[ax] == layer_index:
-        c.rotate(R)
+    def disable(self):
+        log(f"Disable button")
+        self.btn.enabled = False
 
-    # NOTE: call c.finalize_rotation() for those cubelets AFTER a full 90° turn completes
+    def enable(self):
+        log(f"Enable button")
+        self.btn.enabled = True
 
-  def project(self, points, scale=100):
-    offset = (self.width / 2, self.height / 2)
-    result = []
-    for x, y, z in points:
-      f = 3
-      factor = f / (f + z)
-      x2d = x * scale * factor + offset[0]
-      y2d = -y * scale * factor + offset[1]
-      result.append((x2d, y2d))
-    return result
+    def update_main_title(self, main_title):
+        log(f"Update button title to {main_title}")
+        self._main_title = main_title
+        self.btn.title = self._main_title
 
-  def draw(self):
-    all_faces = []
+    def set_sub_title(self, sub_title):
+        log(f"Set sub title to {sub_title}")
+        self.btn.title = self._main_title + ': ' + sub_title
 
-    for c in self.cubelets:
-      # Build cubelet vertices in WORLD space:
-      # rotate local offsets by the cubelet's own orientation, then translate by center
-      verts_world = (self.local_offsets @ c.rotation.T) + c.center
+class RubiksView (ui.View):
+    def __init__(self):
+        self.flex = 'WH'
+        self.update_interval = 0.05
+        self.global_R = np.identity(3)    # cube's physical orientation in world space
+        self.cubelets = [Cubelet((x, y, z)) for x in [-1, 0, 1]
+                                                                                 for y in [-1, 0, 1]
+                                                                                 for z in [-1, 0, 1]]
 
-      # We now draw in world coords (no extra global_R here, since we rotate the cube physically)
-      projected = self.project(verts_world)
+        # handy base offsets for drawing (local cubelet corners)
+        d = CUBE_SIZE / 2.0
+        self.local_offsets = np.array([
+            [-d, -d, -d],    # 0
+            [ d, -d, -d],    # 1
+            [ d,    d, -d],    # 2
+            [-d,    d, -d],    # 3
+            [-d, -d,    d],    # 4
+            [ d, -d,    d],    # 5
+            [ d,    d,    d],    # 6
+            [-d,    d,    d],    # 7
+        ])
+        self.logic = CubeModel()         # logical solver model
+        self.solver = BeginnerSolver()   # the solver
+        self._move_queue = deque()
+        self._current_move = None
+        self._remaining = 0
+        self._step = 9  # degrees per frame for animation
+        self._btn = RubiksSolverButton(self, self._btn_click)
+        self._scrambled = False
 
-      x, y, z = c.grid_pos
-      visible_faces = {
-        'back':   (z == -1),
-        'front':  (z ==  1),
-        'left':   (x == -1),
-        'right':  (x ==  1),
-        'bottom': (y == -1),
-        'top':    (y ==  1)
-      }
+    def _btn_click(self, sender):
+        self._btn.disable()
+        if self._scrambled:
+            solution = self.solver.solve(self.logic.clone())
+            play_moves(self, solution)
+            log(f"Solve Rubik's Cube. solution: {solution}")
+        else:
+            length = 20
+            tokens = list(MOVE_MAP.keys())
+            seq = []
+            last_face = ''
+            for _ in range(length):
+                m = random.choice(tokens)
+                # avoid same face twice
+                while m[0] == last_face:
+                    m = random.choice(tokens)
+                last_face = m[0]
+                seq.append(m)
+            play_moves(self, seq)
+            # update logical model too:
+            self.logic.apply(seq)
+            log(f"Scramble Rubik's Cube. random moves: {seq}")
+        self._scrambled = not self._scrambled
+        log(f"Update scrmabled state to {self._scrambled}")
 
-      for indices, face_name in FACES:
-        face_color = FACE_COLORS[face_name]
-        if not visible_faces[face_name]:
-          face_color = FACE_COLOR_INNER
+    # Rotate the WHOLE cube physically around a world axis
+    def rotate_cube(self, axis, angle_rad):
+        R = rotation_matrix(axis, angle_rad)
+        self.global_R = R @ self.global_R
+        for c in self.cubelets:
+            c.rotate(R)
 
-        face3d = verts_world[indices]
-        face2d = [projected[i] for i in indices]
-        avg_depth = float(np.mean(face3d[:, 2]))
-        all_faces.append((avg_depth, face2d, face_color, face3d))
+    def update(self):
+        # Animate a queued 90° move in steps; when finished, snap and update logical cube model.
+        if self._current_move is None:
+            if self._move_queue:
+                self._current_move = self._move_queue.popleft()
+                self._remaining = abs(self._current_move[2])
+                self._btn.set_sub_title(str(len(self._move_queue)))
+            else:
+                # idle: you can auto-scramble+solve here for demo
+                self._btn.enable()
+                title = 'Solve' if self._scrambled else 'Scramble'
+                self._btn.update_main_title(title)
 
-    # Painter's algorithm with stable tie-breakers to avoid flicker
-    all_faces.sort(key=lambda f: (round(f[0], 6),
-                                  round(np.min(f[3][:,0]), 6),
-                                  round(np.min(f[3][:,1]), 6)),
-                   reverse=True)
+        if self._current_move:
+            axis, layer, total_deg = self._current_move
+            step = min(self._step, self._remaining)
+            angle = radians(step if total_deg > 0 else -step)
+            self.rotate_slice(axis, layer, angle)
+            self._remaining -= step
+            if self._remaining <= 0:
+                token = self._last_token_from_move(axis, layer, total_deg)
+                if token:
+                    self.logic.move(token)
+                self._current_move = None
 
-    for _, pts, color, _ in all_faces:
-      draw_poly(pts, color)
+        self.set_needs_display()
+
+    def _last_token_from_move(self, axis, layer, total_deg):
+        # Convert (axis,layer,±90) to token (U,D,L,R,F,B or their primes).
+        if abs(total_deg) != 90: return None
+        # Map local axis+layer+direction to notation
+        if axis == 'y' and layer ==  1: return "U"  if total_deg>0 else "U'"
+        if axis == 'y' and layer == -1: return "D'" if total_deg>0 else "D"
+        if axis == 'x' and layer ==  1: return "R"  if total_deg>0 else "R'"
+        if axis == 'x' and layer == -1: return "L'" if total_deg>0 else "L"
+        if axis == 'z' and layer ==  1: return "F"  if total_deg>0 else "F'"
+        if axis == 'z' and layer == -1: return "B'" if total_deg>0 else "B"
+        return None
+
+    def rotate_slice(self, axis, layer_index, angle_rad):
+        # 1. Local axis unit vector (cube space)
+        local_axis = np.zeros(3)
+        local_axis[['x', 'y', 'z'].index(axis)] = 1.0
+
+        # 2. Convert to world axis using the cube’s global rotation
+        world_axis = self.global_R @ local_axis
+
+        # 3. Build rotation matrix around this axis
+        R = rotation_matrix_from_vector(world_axis, angle_rad)
+
+        # 4. For each cubelet, check if it's in the slice (by projection onto local axis)
+        spacing = CUBE_SIZE * CUBE_GAP
+        tol = spacing / 2  # tolerance for floating point
+        for cubelet in self.cubelets:
+            # Project center into cube-local coordinates
+            local_center = np.linalg.inv(self.global_R) @ cubelet.center
+            coord = round(local_center[['x','y','z'].index(axis)] / spacing)
+            if coord == layer_index:
+                # Rotate in world coordinates
+                cubelet.center = R @ cubelet.center
+                cubelet.rotation = R @ cubelet.rotation
+
+    def rotate_slice_dep(self, axis, layer_index, angle_rad):
+        """
+        Rotate a slice around the cube's OWN axis (not world axes).
+        axis: 'x' | 'y' | 'z'    -> cube-local axis
+        layer_index: -1, 0, 1    -> which layer along that axis in cube-local coords
+        """
+        axis_index_map = {'x': 0, 'y': 1, 'z': 2}
+        ax = axis_index_map[axis]
+
+        # Cube-local axis unit vector -> world axis via the cube's current orientation
+        local_axis = np.zeros(3)
+        local_axis[ax] = 1.0
+        world_axis = self.global_R @ local_axis    # rotate local axis into world space
+
+        # Build rotation about that world axis
+        R = rotation_matrix_from_vector(world_axis, angle_rad)
+
+        # Rotate only the selected layer (membership defined in cube-local grid coords)
+        for c in self.cubelets:
+            if c.grid_pos[ax] == layer_index:
+                c.rotate(R)
+
+        # NOTE: call c.finalize_rotation() for those cubelets AFTER a full 90° turn completes
+
+    def project(self, points, scale=100):
+        offset = (self.width / 2, self.height / 2)
+        result = []
+        for x, y, z in points:
+            f = 3
+            factor = f / (f + z)
+            x2d = x * scale * factor + offset[0]
+            y2d = -y * scale * factor + offset[1]
+            result.append((x2d, y2d))
+        return result
+
+    def draw(self):
+        all_faces = []
+
+        for c in self.cubelets:
+            # Build cubelet vertices in WORLD space:
+            # rotate local offsets by the cubelet's own orientation, then translate by center
+            verts_world = (self.local_offsets @ c.rotation.T) + c.center
+
+            # We now draw in world coords (no extra global_R here, since we rotate the cube physically)
+            projected = self.project(verts_world)
+
+            x, y, z = c.grid_pos
+            visible_faces = {
+                'back':     (z == -1),
+                'front':    (z ==    1),
+                'left':     (x == -1),
+                'right':    (x ==    1),
+                'bottom': (y == -1),
+                'top':        (y ==    1)
+            }
+
+            for indices, face_name in FACES:
+                face_color = FACE_COLORS[face_name]
+                if not visible_faces[face_name]:
+                    face_color = FACE_COLOR_INNER
+
+                face3d = verts_world[indices]
+                face2d = [projected[i] for i in indices]
+                avg_depth = float(np.mean(face3d[:, 2]))
+                all_faces.append((avg_depth, face2d, face_color, face3d))
+
+        # Painter's algorithm with stable tie-breakers to avoid flicker
+        all_faces.sort(key=lambda f: (round(f[0], 6),
+                                                                    round(np.min(f[3][:,0]), 6),
+                                                                    round(np.min(f[3][:,1]), 6)),
+                                     reverse=True)
+
+        for _, pts, color, _ in all_faces:
+            draw_poly(pts, color)
+
+def scramble(view: 'RubiksView', length=20):
+    tokens = list(MOVE_MAP.keys())
+    seq = []
+    last_face = ''
+    for _ in range(length):
+        m = random.choice(tokens)
+        # avoid same face twice
+        while m[0] == last_face:
+            m = random.choice(tokens)
+        last_face = m[0]
+        seq.append(m)
+    play_moves(view, seq)
+    # update logical model too:
+    view.logic.apply(seq)
+
+def solve(view: 'RubiksView'):
+    # Compute solution from current logical state, then animate it
+    solution = view.solver.solve(view.logic.clone())
+    play_moves(view, solution)
 
 rubiks_view = RubiksView()
 rubiks_view.rotate_cube('y', radians(35))
 rubiks_view.rotate_cube('x', radians(-25))
-#rubiks_view.rotate_cube('z', radians(40))
 rubiks_view.present(style='full_screen', animated=False, hide_title_bar=True)
+
