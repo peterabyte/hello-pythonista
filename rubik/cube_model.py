@@ -43,6 +43,16 @@ class CubeModel:
             ['L']*9,  # L
             ['B']*9,  # B
         ]
+        self.rotate_x_180()  # Adjust to UI orientation
+
+    def rotate_x_180(self):
+        # Swap U and D faces
+        self.faces[0], self.faces[3] = self.faces[3], self.faces[0]
+        # You may also need to rotate the swapped faces to maintain orientation
+        self.faces[0] = rot_180(self.faces[0])
+        self.faces[3] = rot_180(self.faces[3])
+        # Swap and rotate F/B faces as needed for correct orientation
+        self.faces[2], self.faces[5] = rot_180(self.faces[5]), rot_180(self.faces[2])
 
     def clone(self):
         c = CubeModel()
