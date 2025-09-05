@@ -185,8 +185,7 @@ class Cube:
                 cubelet.center = R @ cubelet.center
                 cubelet.rotation = R @ cubelet.rotation
 
-    def project(self, points, scale=100):
-        offset = (self.width / 2, self.height / 2)
+    def project(self, points, scale=100, offset=(0, 0)):
         result = []
         for x, y, z in points:
             f = 3
@@ -217,7 +216,7 @@ class Cube:
             [z*x*C - y*s, z*y*C + x*s, c + z*z*C]
         ])
 
-    def faces_to_draw(self):
+    def faces_to_draw(self, offset=(0, 0)):
         all_faces = []
         for c in self.cubelets:
             # Build cubelet vertices in WORLD space:
@@ -225,7 +224,7 @@ class Cube:
             verts_world = (self.local_offsets @ c.rotation.T) + c.center
 
             # We now draw in world coords (no extra global_R here, since we rotate the cube physically)
-            projected = self.project(verts_world)
+            projected = self.project(verts_world, offset=offset)
 
             x, y, z = c.grid_pos
             visible_faces = {
@@ -336,7 +335,9 @@ class RubiksCubeView (ui.View):
                     self.btn.update_main_title(title)
 
     def draw(self):
-        all_faces = self.cube.faces_to_draw()
+        all_faces = self.cube.faces_to_draw(
+            offset=(self.width / 2, self.height / 2)
+        )
         for _, pts, color, _ in all_faces:
             self.draw_poly(pts, color)
 
