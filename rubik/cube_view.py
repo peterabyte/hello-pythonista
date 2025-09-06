@@ -92,7 +92,7 @@ class Cube:
     def action(self):
         if self._scrambled:
             solution = self.solver.solve(self.logic.clone())
-            self.play_moves(self, solution)
+            self.play_moves(solution)
             logging.debug('Solve Rubik\'s Cube. solution: %s', solution)
         else:
             length = 20
@@ -106,12 +106,15 @@ class Cube:
                     m = random.choice(tokens)
                 last_face = m[0]
                 seq.append(m)
-            self.play_moves(self, seq)
+            self.play_moves(seq)
             # update logical model too:
             self.logic.apply(seq)
             logging.debug('Scramble Rubik\'s Cube. random moves: %s', seq)
         self._scrambled = not self._scrambled
         logging.debug('Update scrmabled state to: %s', self._scrambled)
+
+    def is_scrambled(self):
+        return self._scrambled
 
     def play_moves(self, moves, degrees_per_frame=9):
         logging.debug('Play moves: %s', moves)
@@ -324,14 +327,14 @@ class RubiksCubeView (ui.View):
 
     def update_button(self, current_move, remaining_num_of_moves):
         if current_move is None:
-            if remaining_num_of_moves >= 0:
+            if remaining_num_of_moves > 0:
                 self._waiting_idle = False
                 self.btn.set_sub_title(str(remaining_num_of_moves))
             else:
                 if not self._waiting_idle:
                     self._waiting_idle = True
                     self.btn.enable()
-                    title = 'Solve' if self._scrambled else 'Scramble'
+                    title = 'Solve' if self.cube.is_scrambled() else 'Scramble'
                     self.btn.update_main_title(title)
 
     def draw(self):
