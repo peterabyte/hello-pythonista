@@ -1,4 +1,5 @@
 from cube_model import CubeModel
+import logger
 
 # ---------- BeginnerSolver ----------
 # Produces a list of moves in Singmaster notation.
@@ -10,8 +11,8 @@ class BeginnerSolver:
     def solve(self, cube: CubeModel):
         seq = []
         seq += self._solve_white_cross(cube)
-        seq += self._solve_white_corners(cube)
         # TODO: uncomment and implement solver
+        # seq += self._solve_white_corners(cube)
         # seq += self._solve_second_layer(cube)
         # seq += self._solve_oll(cube)
         # seq += self._solve_pll(cube)
@@ -20,9 +21,9 @@ class BeginnerSolver:
     # --- PHASE 1: White Cross ---
     def _solve_white_cross(self, cube):
         seq = []
-        # For each white edge, bring it to D face with correct orientation
-        # White = 'U', so we want D face edges to be 'U' and side stickers to match centers
-        # Edges: (D, positions 1,3,5,7)
+        # For each white edge, bring it to U face with correct orientation
+        # White = 'U', so we want U face edges to be 'U' and side stickers to match centers
+        # Edges: (U, positions 1,3,5,7)
         for _ in range(4):
             # Find a white edge not solved
             for face in range(6):
@@ -30,17 +31,17 @@ class BeginnerSolver:
                     color = cube.faces[face][idx]
                     if color == 'U':
                         # If already solved, skip
-                        if face == 3 and cube.faces[3][idx] == 'U':
+                        if face == 0 and cube.faces[0][idx] == 'U':
                             continue
-                        # If on U face, bring down
-                        if face == 0:
-                            # U edge: move to D using F2, R2, B2, L2
+                        # If on D face, bring up
+                        if face == 3:
+                            # D edge: move to U using F2, R2, B2, L2
                             if idx == 1: moves = ['F2']
                             elif idx == 3: moves = ['L2']
                             elif idx == 5: moves = ['R2']
                             elif idx == 7: moves = ['B2']
                             cube.apply(moves); seq += moves
-                        # If on side face, bring to U then down
+                        # If on side face, bring to D then up
                         elif face in [1,2,4,5]:
                             # Move edge to U
                             if idx == 1: moves = ['D']
@@ -49,8 +50,8 @@ class BeginnerSolver:
                             else: moves = []
                             cube.apply(moves); seq += moves
                             cube.apply(['F2']); seq += ['F2']
-                        # If on D but misoriented, flip with F, R, B, L
-                        elif face == 3:
+                        # If on U but misoriented, flip with F, R, B, L
+                        elif face == 0:
                             if idx == 1: moves = ['F', 'D', 'R', 'D\'', 'R\'', 'F\'']
                             elif idx == 3: moves = ['L', 'D', 'F', 'D\'', 'F\'', 'L\'']
                             elif idx == 5: moves = ['R', 'D', 'B', 'D\'', 'B\'', 'R\'']

@@ -369,6 +369,5 @@ logging.basicConfig(level=LOG_LEVEL)
 rubiks_view = RubiksCubeView()
 rubiks_view.rotate_cube('y', radians(215))
 rubiks_view.rotate_cube('x', radians(-25))
-rubiks_view.cube.play_moves(['R\''])
 rubiks_view.present(style='full_screen', animated=False, hide_title_bar=True)
 
