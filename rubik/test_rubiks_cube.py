@@ -30,6 +30,24 @@ class CubeTestCase(unittest.TestCase):
         self.assertEqual(cube.logic.as_string(),
             'UUUUUUUUU;FFFRRRRRR;LLLFFFFFF;DDDDDDDDD;BBBLLLLLL;RRRBBBBBB')
 
+    def test_model_after_D(self):
+        cube = Cube()
+        moves = ['D']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUUUUUUUU;RRRRRRFFF;FFFFFFLLL;DDDDDDDDD;LLLLLLBBB;BBBBBBRRR')
+
+    def test_model_after_D_(self):
+        cube = Cube()
+        moves = ['D\'']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUUUUUUUU;RRRRRRBBB;FFFFFFRRR;DDDDDDDDD;LLLLLLFFF;BBBBBBLLL')
+
     def test_model_after_L(self):
         cube = Cube()
         moves = ['L']
@@ -48,8 +66,61 @@ class CubeTestCase(unittest.TestCase):
         self.assertEqual(cube.logic.as_string(),
             'UUBUUBUUB;RRRRRRRRR;FFUFFUFFU;DDFDDFDDF;LLLLLLLLL;DBBDBBDBB')
 
+    def test_model_after_R(self):
+        cube = Cube()
+        moves = ['R']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'BUUBUUBUU;RRRRRRRRR;UFFUFFUFF;FDDFDDFDD;LLLLLLLLL;BBDBBDBBD')
+
+    def test_model_after_R_(self):
+        cube = Cube()
+        moves = ['R\'']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'FUUFUUFUU;RRRRRRRRR;DFFDFFDFF;BDDBDDBDD;LLLLLLLLL;BBUBBUBBU')
+
+    def test_model_after_B(self):
+        cube = Cube()
+        moves = ['B']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'RRRUUUUUU;RRDRRDRRD;FFFFFFFFF;DDDDDDLLL;ULLULLULL;BBBBBBBBB')
+
+    def test_model_after_B_(self):
+        cube = Cube()
+        moves = ['B\'']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'LLLUUUUUU;RRURRURRU;FFFFFFFFF;DDDDDDRRR;DLLDLLDLL;BBBBBBBBB')
+
+    def test_model_after_F(self):
+        cube = Cube()
+        moves = ['F']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUUUUULLL;URRURRURR;FFFFFFFFF;RRRDDDDDD;LLDLLDLLD;BBBBBBBBB')
+
+    def test_model_after_F_(self):
+        cube = Cube()
+        moves = ['F\'']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUUUUURRR;DRRDRRDRR;FFFFFFFFF;LLLDDDDDD;LLULLULLU;BBBBBBBBB')
+
     def play_moves(self, cube: 'Cube', moves):
-        logging.info('Play moves: %s', moves)
         cube.play_moves(moves)
         current_move, _ = cube.update()
         while current_move is not None:
