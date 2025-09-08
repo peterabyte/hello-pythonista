@@ -42,8 +42,8 @@ FACES = [
 MOVE_MAP = {
     'U':  ('y',  1, 1, +1),   "U'": ('y',  1, 1, -1),  'U2': ('y',  1, 2, +1),
     'D':  ('y', -1, 1, -1),   "D'": ('y', -1, 1, +1),  'D2': ('y', -1, 2, +1),
-    'R':  ('x',  1, 1, +1),   "R'": ('x',  1, 1, -1),  'R2': ('x',  1, 2, +1),
-    'L':  ('x', -1, 1, -1),   "L'": ('x', -1, 1, +1),  'L2': ('x', -1, 2, +1),
+    'L':  ('x',  1, 1, +1),   "L'": ('x',  1, 1, -1),  'L2': ('x',  1, 2, +1),
+    'R':  ('x', -1, 1, -1),   "R'": ('x', -1, 1, +1),  'R2': ('x', -1, 2, +1),
     'F':  ('z',  1, 1, +1),   "F'": ('z',  1, 1, -1),  'F2': ('z',  1, 2, +1),
     'B':  ('z', -1, 1, -1),   "B'": ('z', -1, 1, +1),  'B2': ('z', -1, 2, +1),
 }
@@ -358,7 +358,8 @@ class RubiksCubeView (ui.View):
 logging.basicConfig(level=LOG_LEVEL)
 
 rubiks_view = RubiksCubeView()
-rubiks_view.rotate_cube('y', radians(35))
+rubiks_view.rotate_cube('y', radians(215))
 rubiks_view.rotate_cube('x', radians(-25))
+rubiks_view.cube.play_moves(['R\''])
 rubiks_view.present(style='full_screen', animated=False, hide_title_bar=True)
 
