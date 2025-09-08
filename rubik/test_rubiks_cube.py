@@ -1,13 +1,60 @@
 import unittest
 from unittest.mock import MagicMock
-
+import logging
 import sys
 sys.modules['ui'] = MagicMock()
 
 from cube_view import Cube
 
 class CubeTestCase(unittest.TestCase):
-    def test(self):
+    def test_default_model_state(self):
         cube = Cube()
-        self.maxDiff = None
-        self.assertEqual(cube.state(), {})
+        self.assertEqual(cube.logic.as_string(),
+            'UUUUUUUUU;RRRRRRRRR;FFFFFFFFF;DDDDDDDDD;LLLLLLLLL;BBBBBBBBB')
+
+    def test_model_after_U(self):
+        cube = Cube()
+        moves = ['U']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUUUUUUUU;BBBRRRRRR;RRRFFFFFF;DDDDDDDDD;FFFLLLLLL;LLLBBBBBB')
+
+    def test_model_after_U_(self):
+        cube = Cube()
+        moves = ['U\'']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUUUUUUUU;FFFRRRRRR;LLLFFFFFF;DDDDDDDDD;BBBLLLLLL;RRRBBBBBB')
+
+    def test_model_after_L(self):
+        cube = Cube()
+        moves = ['L']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUFUUFUUF;RRRRRRRRR;FFDFFDFFD;DDBDDBDDB;LLLLLLLLL;UBBUBBUBB')
+
+    def test_model_after_L_(self):
+        cube = Cube()
+        moves = ['L\'']
+
+        self.play_moves(cube, moves)
+
+        self.assertEqual(cube.logic.as_string(),
+            'UUBUUBUUB;RRRRRRRRR;FFUFFUFFU;DDFDDFDDF;LLLLLLLLL;DBBDBBDBB')
+
+    def play_moves(self, cube: 'Cube', moves):
+        logging.info('Play moves: %s', moves)
+        cube.play_moves(moves)
+        current_move, _ = cube.update()
+        while current_move is not None:
+            current_move, _ = cube.update()
+        
+
+if __name__ == '__main__':
+    unittest.main()

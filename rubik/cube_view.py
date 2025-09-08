@@ -22,6 +22,14 @@ FACE_COLORS = {
     'left':   (0, 0, 1),    # Blue
     'right':  (0, 1, 0),    # Green
 }
+COLORS = {
+    (1, 0, 0): 'r',
+    (1, 0.5, 0): 'o',
+    (1, 1, 1): 'w',
+    (1, 1, 0): 'y',
+    (0, 0, 1): 'b',
+    (0, 1, 0): 'g',
+}
 FACE_COLOR_INNER = 'gray'
 FACE_COLOR_EDGE = 'black'
 
@@ -258,18 +266,19 @@ class Cube:
 
     def state(self):
         state = {}
+        for face, color in FACE_COLORS.items():
+            state[face] = {}
         for c in self.cubelets:
             x, y, z = c.grid_pos
-            key = (x, y, z)
-            state[key] = {}
-            for indices, face_name in FACES:
+            key = (x.item(), y.item(), z.item())
+            for _, face_name in FACES:
                 if ((face_name == 'front' and z == 1) or
                     (face_name == 'back' and z == -1) or
                     (face_name == 'left' and x == -1) or
                     (face_name == 'right' and x == 1) or
                     (face_name == 'top' and y == 1) or
                     (face_name == 'bottom' and y == -1)):
-                    state[key][face_name] = FACE_COLORS[face_name]
+                    state[face_name][key] = COLORS[FACE_COLORS[face_name]]
         return state
 
 class ActionButton:

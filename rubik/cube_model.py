@@ -43,7 +43,6 @@ class CubeModel:
             ['L']*9,  # L
             ['B']*9,  # B
         ]
-        self.rotate_x_180()  # Adjust to UI orientation
 
     def rotate_x_180(self):
         # Swap U and D faces
@@ -200,4 +199,4 @@ class CubeModel:
 
     def as_string(self):
         # Simple string for debugging
-        return ''.join(''.join(face) for face in self.faces)
+        return ';'.join(''.join(face) for face in self.faces)
