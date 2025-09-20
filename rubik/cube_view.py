@@ -56,6 +56,16 @@ MOVE_MAP = {
     'B':  ('z', -1, 1, -1),   "B'": ('z', -1, 1, +1),  'B2': ('z', -1, 2, +1),
 }
 
+MOVE_BUTTONS_ENABLED = True
+MOVE_BUTTONS = ['U', 'D', 'L', 'R', 'F', 'B']
+MOVE_BUTTONS_PER_ROW = 6
+
+def play_moves(cube, moves):
+    cube.play_moves(moves)
+    current_move, moves_left = cube.update()
+    while current_move is not None or moves_left > 0:
+        current_move, moves_left = cube.update()
+
 class Cubelet:
     def __init__(self, pos):
         self.grid_pos = np.array(pos)
@@ -158,6 +168,7 @@ class Cube:
                 token = self.last_token_from_move(axis, layer, total_deg)
                 if token:
                     self.logic.move(token)
+                    logging.info('Cube state: %s', self.logic.as_string())
                 self._current_move = None
 
         return (self._current_move, len(self._move_queue))
@@ -169,7 +180,7 @@ class Cube:
         if axis == 'y' and layer ==  1: return "U"  if total_deg>0 else "U'"
         if axis == 'y' and layer == -1: return "D'" if total_deg>0 else "D"
         if axis == 'x' and layer ==  1: return "R"  if total_deg>0 else "R'"
-        if axis == 'x' and layer == -1: return "L'" if total_deg>0 else "L"
+        if axis == 'x' and layer == -1: return "R" if total_deg>0 else "L"
         if axis == 'z' and layer ==  1: return "F"  if total_deg>0 else "F'"
         if axis == 'z' and layer == -1: return "B'" if total_deg>0 else "B"
         return None
@@ -290,18 +301,18 @@ class ActionButton:
             corner_radius=9,
             action=click
         )
-        self.btn.center = (60, 40)
+        self.btn.center = (40, 40)
         self.btn.height = 50
         self.btn.width = 160
         self._main_title = 'Scramble'
         view.add_subview(self.btn)
 
     def disable(self):
-        logging.debug("Disable button")
+        logging.debug("Disable action button")
         self.btn.enabled = False
 
     def enable(self):
-        logging.debug("Enable button")
+        logging.debug("Enable action button")
         self.btn.enabled = True
 
     def update_main_title(self, main_title):
@@ -313,17 +324,64 @@ class ActionButton:
         logging.debug('Set sub title to: %s', sub_title)
         self.btn.title = self._main_title + ': ' + sub_title
 
+class MoveButtons:
+    def __init__(self, view, click_move):
+        btn_pos = (25, 100)
+        btn_offset = 10
+        btn_height = 50
+        btn_width = 50
+        self.click_move = click_move
+        self.buttons = []
+        for move in MOVE_BUTTONS:
+            btn = ui.Button(
+                title=move,
+                bg_color='#55bcff',
+                tint_color='#fff',
+                corner_radius=9,
+                action=self._click
+            )
+            btn.center = btn_pos
+            btn.height = btn_height
+            btn.width = btn_width
+            btn_pos = (btn_pos[0] + btn_offset + btn_width, btn_pos[1])
+            self.buttons.append(btn)
+            view.add_subview(btn)
+
+    def _click(self, sender):
+        move = sender.title
+        logging.debug('Move button clicked: %s', move)
+        self.click_move(move)
+
+    def enable(self):
+        logging.debug('Enable move buttons')
+        for btn in self.buttons:
+            btn.enabled = True
+
+    def disable(self):
+        logging.debug('Disable move buttons')
+        for btn in self.buttons:
+            btn.enabled = False
+
 class RubiksCubeView (ui.View):
     def __init__(self):
         self.flex = 'WH'
         self.update_interval = 0.05
-        self.btn = ActionButton(self, self.action_click)
+        self.btn = ActionButton(self, self.click_action)
+        self.move_buttons = MoveButtons(self, self.click_move)
         self.cube = Cube()
         self._waiting_idle = False
 
-    def action_click(self, sender):
+    def click_action(self, sender):
+        self._waiting_idle = False
+        self.move_buttons.disable()
         self.btn.disable()
         self.cube.action()
+
+    def click_move(self, move):
+        self._waiting_idle = False
+        self.move_buttons.disable()
+        self.btn.disable()
+        self.cube.play_moves([move])
 
     # Rotate the WHOLE cube physically around a world axis
     def rotate_cube(self, axis, angle_rad):
@@ -342,6 +400,7 @@ class RubiksCubeView (ui.View):
             else:
                 if not self._waiting_idle:
                     self._waiting_idle = True
+                    self.move_buttons.enable()
                     self.btn.enable()
                     title = 'Solve' if self.cube.is_scrambled() else 'Scramble'
                     self.btn.update_main_title(title)

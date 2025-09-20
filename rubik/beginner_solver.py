@@ -1,5 +1,5 @@
 from cube_model import CubeModel
-import logger
+import logging
 
 # ---------- BeginnerSolver ----------
 # Produces a list of moves in Singmaster notation.
@@ -10,7 +10,7 @@ class BeginnerSolver:
 
     def solve(self, cube: CubeModel):
         seq = []
-        seq += self._solve_white_cross(cube)
+        seq += self.solve_white_cross(cube)
         # TODO: uncomment and implement solver
         # seq += self._solve_white_corners(cube)
         # seq += self._solve_second_layer(cube)
@@ -19,7 +19,7 @@ class BeginnerSolver:
         return seq
 
     # --- PHASE 1: White Cross ---
-    def _solve_white_cross(self, cube):
+    def solve_white_cross(self, cube):
         seq = []
         # For each white edge, bring it to U face with correct orientation
         # White = 'U', so we want U face edges to be 'U' and side stickers to match centers

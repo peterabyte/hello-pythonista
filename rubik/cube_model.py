@@ -5,6 +5,7 @@
 
 from collections import deque
 import copy
+import logging
 
 FACE_INDEX = {'U':0, 'R':1, 'F':2, 'D':3, 'L':4, 'B':5}
 INDEX_FACE = {v:k for k,v in FACE_INDEX.items()}
@@ -105,16 +106,17 @@ class CubeModel:
 
     def R(self):
         f = self.faces
+        logging.debug('R before: %s', f[1])
         f[1] = rot_cw(f[1])
-        # U col2 -> F col2 -> D col2 -> B col0 (reversed)
-        (f[0][2], f[0][5], f[0][8],
-         f[2][2], f[2][5], f[2][8],
-         f[3][2], f[3][5], f[3][8],
-         f[5][6], f[5][3], f[5][0]) = (
-         f[2][2], f[2][5], f[2][8],
-         f[3][2], f[3][5], f[3][8],
-         f[5][6], f[5][3], f[5][0],
-         f[0][2], f[0][5], f[0][8])
+        logging.debug('R after: %s', f[1])
+        (f[0][0], f[0][3], f[0][6],
+         f[5][8], f[5][5], f[5][2],
+         f[3][0], f[3][3], f[3][6],
+         f[2][0], f[2][3], f[2][6]) = (
+         f[5][8], f[5][5], f[5][2],
+         f[3][0], f[3][3], f[3][6],
+         f[2][0], f[2][3], f[2][6],
+         f[0][0], f[0][3], f[0][6])
 
     def R_(self):
         for _ in range(3): self.R()
@@ -124,16 +126,17 @@ class CubeModel:
 
     def L(self):
         f = self.faces
+        logging.debug('L before: %s', f[4])
         f[4] = rot_cw(f[4])
-        # U col0 -> B col2 (reversed) -> D col0 -> F col0
-        (f[0][0], f[0][3], f[0][6],
-         f[5][8], f[5][5], f[5][2],
-         f[3][0], f[3][3], f[3][6],
-         f[2][0], f[2][3], f[2][6]) = (
-         f[5][8], f[5][5], f[5][2],
-         f[3][0], f[3][3], f[3][6],
-         f[2][0], f[2][3], f[2][6],
-         f[0][0], f[0][3], f[0][6])
+        logging.debug('L before: %s', f[4])
+        (f[0][2], f[0][5], f[0][8],
+         f[2][2], f[2][5], f[2][8],
+         f[3][2], f[3][5], f[3][8],
+         f[5][6], f[5][3], f[5][0]) = (
+         f[2][2], f[2][5], f[2][8],
+         f[3][2], f[3][5], f[3][8],
+         f[5][6], f[5][3], f[5][0],
+         f[0][2], f[0][5], f[0][8])
 
     def L_(self):
         for _ in range(3): self.L()
@@ -182,6 +185,7 @@ class CubeModel:
     # Apply a single move token
     def move(self, m):
         # m in {'U','U\'','U2', ...}
+        logging.debug('Move logic: %s', m)
         base = m[0]
         suf = m[1:] if len(m) > 1 else ''
         fn = getattr(self, base)
@@ -200,3 +204,16 @@ class CubeModel:
     def as_string(self):
         # Simple string for debugging
         return ';'.join(''.join(face) for face in self.faces)
+
+    def from_string(faces_str):
+        cube_model = CubeModel()
+        if len(faces_str) != 59:
+            raise Exception('Faces string should be a 9*6 long string each face separated with ;.')
+        faces_str_list = faces_str.split(';')
+        if len(faces_str_list) != 6:
+            raise Exception('Faces string should represent 6 faces.')
+        for idx, face_str in enumerate(faces_str_list):
+            if len(face_str) != 9:
+                raise Exception('A face should have 9 tiles.')
+            cube_model.faces[idx] = list(face_str)
+        return cube_model
