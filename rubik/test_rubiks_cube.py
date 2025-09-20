@@ -142,31 +142,109 @@ class CubeTestCase(unittest.TestCase):
 
     def test_move_map_U(self):
         move = 'U'
-        total_deg = 90
         cube = Cube()
         
-        axis, layer, _, _ = MOVE_MAP[move]
-        result_move = cube.last_token_from_move(axis, layer, total_deg)
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
         
         self.assertEqual(result_move, move)
 
     def test_move_map_U_(self):
         move = "U'"
-        total_deg = -90
         cube = Cube()
         
-        axis, layer, _, _ = MOVE_MAP[move]
-        result_move = cube.last_token_from_move(axis, layer, total_deg)
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_D(self):
+        move = 'D'
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_D_(self):
+        move = "D'"
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_B(self):
+        move = 'B'
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_B_(self):
+        move = "B'"
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_F(self):
+        move = 'F'
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_F_(self):
+        move = "F'"
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
         
         self.assertEqual(result_move, move)
 
     def test_move_map_R(self):
         move = "R"
-        total_deg = 90
         cube = Cube()
         
-        axis, layer, _, _ = MOVE_MAP[move]
-        result_move = cube.last_token_from_move(axis, layer, total_deg)
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_R_(self):
+        move = "R'"
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_L(self):
+        move = "L"
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
+        
+        self.assertEqual(result_move, move)
+
+    def test_move_map_L_(self):
+        move = "L'"
+        cube = Cube()
+        
+        axis, layer, _, dir = MOVE_MAP[move]
+        result_move = cube.last_token_from_move(axis, layer, dir * 90)
         
         self.assertEqual(result_move, move)
 

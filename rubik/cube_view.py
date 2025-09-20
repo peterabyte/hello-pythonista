@@ -179,8 +179,8 @@ class Cube:
         # Map local axis+layer+direction to notation
         if axis == 'y' and layer ==  1: return "U"  if total_deg>0 else "U'"
         if axis == 'y' and layer == -1: return "D'" if total_deg>0 else "D"
-        if axis == 'x' and layer ==  1: return "R"  if total_deg>0 else "R'"
-        if axis == 'x' and layer == -1: return "R" if total_deg>0 else "L"
+        if axis == 'x' and layer ==  1: return "L"  if total_deg>0 else "L'"
+        if axis == 'x' and layer == -1: return "R'" if total_deg>0 else "R"
         if axis == 'z' and layer ==  1: return "F"  if total_deg>0 else "F'"
         if axis == 'z' and layer == -1: return "B'" if total_deg>0 else "B"
         return None
