@@ -132,14 +132,6 @@ class CubeTestCase(unittest.TestCase):
         
         self.assertEqual(cube_model.as_string(), 'BUUBUUDUU;BBBURRURR;LRRLFFLFF;URRFDDFDD;LLFLLFDDF;LLDBBDBBR')
 
-    def test_solve_white_cross_when_already_solved(self):
-        solver = BeginnerSolver()
-        cube_model = CubeModel()
-        
-        solution = solver.solve_white_cross(cube_model)
-        
-        self.assertEqual(len(solution), 0)
-
     def test_move_map_U(self):
         move = 'U'
         cube = Cube()
@@ -247,6 +239,30 @@ class CubeTestCase(unittest.TestCase):
         result_move = cube.last_token_from_move(axis, layer, dir * 90)
         
         self.assertEqual(result_move, move)
+
+    def test_solve_white_cross_when_already_solved(self):
+        solver = BeginnerSolver()
+        cube_model = CubeModel()
+        
+        solution = solver.solve_white_cross(cube_model)
+        
+        self.assertEqual(len(solution), 0)
+
+    def test_solve_white_cross_when_already_solved_white_cross(self):
+        solver = BeginnerSolver()
+        cube_model = CubeModel.from_string('FULUUULUB;URFLRLULD;FFLDFDUFF;BDRBDFLFB;RLDRLBBRR;UBDBBDRRD')
+        
+        solution = solver.solve_white_cross(cube_model)
+        
+        self.assertEqual(len(solution), 0)
+
+    def test_solve_white_cross_when_already_solved_white_cross(self):
+        solver = BeginnerSolver()
+        cube_model = CubeModel.from_string('RUFUUDLUB;DFURRRDLU;FFRDFUBLL;RBBDDFLFF;DLDRLBULU;LBFDBBRRB')
+        
+        solution = solver.solve_white_cross(cube_model)
+        
+        self.assertListEqual(solution, [])
 
 if __name__ == '__main__':
     unittest.main()

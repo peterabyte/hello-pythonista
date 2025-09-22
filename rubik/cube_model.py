@@ -181,7 +181,7 @@ class CubeModel:
     # Apply a single move token
     def move(self, m):
         # m in {'U','U\'','U2', ...}
-        logging.debug('Move logic: %s', m)
+        logging.debug('Move cube logic: %s', m)
         base = m[0]
         suf = m[1:] if len(m) > 1 else ''
         fn = getattr(self, base)

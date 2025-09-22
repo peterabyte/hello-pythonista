@@ -20,6 +20,7 @@ class BeginnerSolver:
 
     # --- PHASE 1: White Cross ---
     def solve_white_cross(self, cube):
+        logging.info('Solve white-cross on cube: %s', cube.as_string())
         seq = []
         # For each white edge, bring it to U face with correct orientation
         # White = 'U', so we want U face edges to be 'U' and side stickers to match centers
@@ -32,6 +33,7 @@ class BeginnerSolver:
                     if color == 'U':
                         # If already solved, skip
                         if face == 0 and cube.faces[0][idx] == 'U':
+                            logging.debug('Already solved tile[%s][%s]', face, idx)
                             continue
                         # If on D face, bring up
                         if face == 3:
@@ -57,6 +59,7 @@ class BeginnerSolver:
                             elif idx == 5: moves = ['R', 'D', 'B', 'D\'', 'B\'', 'R\'']
                             elif idx == 7: moves = ['B', 'D', 'L', 'D\'', 'L\'', 'B\'']
                             cube.apply(moves); seq += moves
+        logging.info('Solution (white-cross) cube: "%s"; moves: %s', cube.as_string(), seq)
         return seq
 
     # --- PHASE 2: White Corners ---
