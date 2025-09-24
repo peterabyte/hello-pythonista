@@ -7,6 +7,7 @@ sys.modules['ui'] = MagicMock()
 from cube_view import Cube, play_moves, MOVE_MAP
 from cube_model import CubeModel
 from beginner_solver import BeginnerSolver
+from ida_star_solver import ida_star_solve
 
 class CubeTestCase(unittest.TestCase):
     def test_default_model_state(self):
@@ -240,29 +241,19 @@ class CubeTestCase(unittest.TestCase):
         
         self.assertEqual(result_move, move)
 
-    def test_solve_white_cross_when_already_solved(self):
-        solver = BeginnerSolver()
+    def test_solve_when_already_solved(self):
         cube_model = CubeModel()
         
-        solution = solver.solve_white_cross(cube_model)
+        solution = ida_star_solve(cube_model)
         
         self.assertEqual(len(solution), 0)
 
-    def test_solve_white_cross_when_already_solved_white_cross(self):
-        solver = BeginnerSolver()
-        cube_model = CubeModel.from_string('FULUUULUB;URFLRLULD;FFLDFDUFF;BDRBDFLFB;RLDRLBBRR;UBDBBDRRD')
+    def test_solve_simple(self):
+        cube_model = CubeModel.from_string('UUUUUUUUU;BBBRRRRRR;RRRFFFFFF;DDDDDDDDD;FFFLLLLLL;LLLBBBBBB')
         
-        solution = solver.solve_white_cross(cube_model)
+        solution = ida_star_solve(cube_model)
         
-        self.assertEqual(len(solution), 0)
-
-    def test_solve_white_cross_when_already_solved_white_cross(self):
-        solver = BeginnerSolver()
-        cube_model = CubeModel.from_string('RUFUUDLUB;DFURRRDLU;FFRDFUBLL;RBBDDFLFF;DLDRLBULU;LBFDBBRRB')
-        
-        solution = solver.solve_white_cross(cube_model)
-        
-        self.assertListEqual(solution, [])
+        self.assertListEqual(solution, ["U'"])
 
 if __name__ == '__main__':
     unittest.main()
