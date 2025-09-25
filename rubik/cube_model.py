@@ -5,7 +5,6 @@
 
 from collections import deque
 import copy
-import logging
 
 FACE_INDEX = {'U':0, 'R':1, 'F':2, 'D':3, 'L':4, 'B':5}
 INDEX_FACE = {v:k for k,v in FACE_INDEX.items()}
@@ -180,8 +179,6 @@ class CubeModel:
 
     # Apply a single move token
     def move(self, m):
-        # m in {'U','U\'','U2', ...}
-        logging.debug('Move cube logic: %s', m)
         base = m[0]
         suf = m[1:] if len(m) > 1 else ''
         fn = getattr(self, base)
@@ -212,4 +209,9 @@ class CubeModel:
             if len(face_str) != 9:
                 raise Exception('A face should have 9 tiles.')
             cube_model.faces[idx] = list(face_str)
+        return cube_model
+
+    def from_moves(moves):
+        cube_model = CubeModel()
+        cube_model.apply(moves)
         return cube_model

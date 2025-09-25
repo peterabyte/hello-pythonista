@@ -1,13 +1,11 @@
 import unittest
 from unittest.mock import MagicMock
-import logging
 import sys
 sys.modules['ui'] = MagicMock()
 
 from cube_view import Cube, play_moves, MOVE_MAP
 from cube_model import CubeModel
-from beginner_solver import BeginnerSolver
-from ida_star_solver import ida_star_solve
+from ida_star_solver import IdaStarSolver
 
 class CubeTestCase(unittest.TestCase):
     def test_default_model_state(self):
@@ -243,17 +241,61 @@ class CubeTestCase(unittest.TestCase):
 
     def test_solve_when_already_solved(self):
         cube_model = CubeModel()
+        solver = IdaStarSolver()
         
-        solution = ida_star_solve(cube_model)
+        solution = solver.solve(cube_model)
         
         self.assertEqual(len(solution), 0)
 
-    def test_solve_simple(self):
-        cube_model = CubeModel.from_string('UUUUUUUUU;BBBRRRRRR;RRRFFFFFF;DDDDDDDDD;FFFLLLLLL;LLLBBBBBB')
+    def test_solve_scrambled_once(self):
+        cube_model = CubeModel.from_moves(["U"])
+        solver = IdaStarSolver()
         
-        solution = ida_star_solve(cube_model)
+        solution = solver.solve(cube_model)
         
         self.assertListEqual(solution, ["U'"])
+        cube_model.apply(solution)
+        self.assertTrue(cube_model.is_solved())
+
+    def test_solve_scrambled_three_times(self):
+        cube_model = CubeModel.from_moves(["R", "U", "F"])
+        solver = IdaStarSolver()
+        
+        solution = solver.solve(cube_model)
+        
+        self.assertListEqual(solution, ["F'", "U'", "R'"])
+        cube_model.apply(solution)
+        self.assertTrue(cube_model.is_solved())
+
+    def test_solve_scrambled_with_basic_moves(self):
+        cube_model = CubeModel.from_moves(["U", "D", "F", "B", "L", "R"])
+        solver = IdaStarSolver()
+        
+        solution = solver.solve(cube_model)
+        
+        self.assertListEqual(solution, ["R'", "L'", "F'", "B'", "U'", "D'"])
+        cube_model.apply(solution)
+        self.assertTrue(cube_model.is_solved())
+
+    def test_solve_scrambled_with_basic_reverse_moves(self):
+        cube_model = CubeModel.from_moves(["U'", "D'", "F'", "B'", "L'", "R'"])
+        solver = IdaStarSolver()
+        
+        solution = solver.solve(cube_model)
+        
+        self.assertListEqual(solution, ['R', 'L', 'F', 'B', 'U', 'D'])
+        cube_model.apply(solution)
+        self.assertTrue(cube_model.is_solved())
+
+    def test_solve_scrambled_with_mixed_basic_moves(self):
+        cube_model = CubeModel.from_moves(["U'", "D", "F'", "B'", "L", "R'"])
+        solver = IdaStarSolver()
+        
+        solution = solver.solve(cube_model)
+        
+        self.assertListEqual(solution, ['R', "L'", 'F', 'B', 'U', "D'"])
+        cube_model.apply(solution)
+        self.assertTrue(cube_model.is_solved())
 
 if __name__ == '__main__':
     unittest.main()

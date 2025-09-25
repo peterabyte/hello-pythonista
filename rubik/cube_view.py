@@ -6,9 +6,11 @@ import random
 import logging
 
 from cube_model import CubeModel
-from beginner_solver import BeginnerSolver
+from ida_star_solver import IdaStarSolver
 
 LOG_LEVEL = logging.DEBUG
+
+NUM_OF_SCRAMBLE_MOVES = 5
 
 CUBE_SIZE = 0.5
 CUBE_GAP = 1.01
@@ -100,7 +102,7 @@ class Cube:
             [-d,  d,  d],    # 7
         ])
         self.logic = CubeModel()         # logical solver model
-        self.solver = BeginnerSolver()   # the solver
+        self.solver = IdaStarSolver()   # the solver
         self._move_queue = deque()
         self._current_move = None
         self._remaining = 0
@@ -110,10 +112,10 @@ class Cube:
     def action(self):
         if self._scrambled:
             solution = self.solver.solve(self.logic.clone())
+            logging.info('Solve Rubik\'s Cube. solution: %s', solution)
             self.play_moves(solution)
-            logging.debug('Solve Rubik\'s Cube. solution: %s', solution)
         else:
-            length = 20
+            length = NUM_OF_SCRAMBLE_MOVES
             tokens = list(MOVE_MAP.keys())
             seq = []
             last_face = ''
@@ -124,18 +126,15 @@ class Cube:
                     m = random.choice(tokens)
                 last_face = m[0]
                 seq.append(m)
+            logging.info('Scramble Rubik\'s Cube. random moves: %s', seq)
             self.play_moves(seq)
-            # update logical model too:
-            self.logic.apply(seq)
-            logging.debug('Scramble Rubik\'s Cube. random moves: %s', seq)
         self._scrambled = not self._scrambled
-        logging.debug('Update scrmabled state to: %s', self._scrambled)
 
     def is_scrambled(self):
         return self._scrambled
 
     def play_moves(self, moves, degrees_per_frame=9):
-        logging.debug('Play moves: %s', moves)
+        logging.info('Play moves: %s', moves)
         self._move_queue = deque()
         for token in moves:
             axis, layer, q, dir_ = MOVE_MAP[token]
@@ -168,7 +167,7 @@ class Cube:
                 token = self.last_token_from_move(axis, layer, total_deg)
                 if token:
                     self.logic.move(token)
-                    logging.info('Cube state: %s', self.logic.as_string())
+                    logging.debug('Current cube model state: %s', self.logic.as_string())
                 self._current_move = None
 
         return (self._current_move, len(self._move_queue))
@@ -423,10 +422,10 @@ class RubiksCubeView (ui.View):
         ui.set_color(FACE_COLOR_EDGE)
         path.stroke()
 
-logging.basicConfig(level=LOG_LEVEL)
+if __name__ == '__main__':
+    logging.basicConfig(level=LOG_LEVEL)
 
-rubiks_view = RubiksCubeView()
-rubiks_view.rotate_cube('y', radians(215))
-rubiks_view.rotate_cube('x', radians(-25))
-rubiks_view.present(style='full_screen', animated=False, hide_title_bar=True)
-
+    rubiks_view = RubiksCubeView()
+    rubiks_view.rotate_cube('y', radians(215))
+    rubiks_view.rotate_cube('x', radians(-25))
+    rubiks_view.present(style='full_screen', animated=False, hide_title_bar=True)

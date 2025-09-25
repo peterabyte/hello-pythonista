@@ -1,14 +1,12 @@
 from cube_model import CubeModel
+from solver import Solver
 import logging
 
 # ---------- BeginnerSolver ----------
 # Produces a list of moves in Singmaster notation.
 
-class BeginnerSolver:
-    def __init__(self):
-        pass
-
-    def solve(self, cube: CubeModel):
+class BeginnerSolver(Solver):
+    def solve(self, cube: CubeModel) -> list:
         seq = []
         seq += self.solve_white_cross(cube)
         # TODO: uncomment and implement solver
