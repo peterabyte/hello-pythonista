@@ -8,9 +8,7 @@ import logging
 from cube_model import CubeModel
 from ida_star_solver import IdaStarSolver
 
-LOG_LEVEL = logging.DEBUG
-
-NUM_OF_SCRAMBLE_MOVES = 5
+NUM_OF_SCRAMBLE_MOVES = 6
 
 CUBE_SIZE = 0.5
 CUBE_GAP = 1.01
@@ -58,9 +56,8 @@ MOVE_MAP = {
     'B':  ('z', -1, 1, -1),   "B'": ('z', -1, 1, +1),  'B2': ('z', -1, 2, +1),
 }
 
-MOVE_BUTTONS_ENABLED = True
+BUTTON_HEIGHT = 40
 MOVE_BUTTONS = ['U', 'D', 'L', 'R', 'F', 'B']
-MOVE_BUTTONS_PER_ROW = 6
 
 def play_moves(cube, moves):
     cube.play_moves(moves)
@@ -107,31 +104,29 @@ class Cube:
         self._current_move = None
         self._remaining = 0
         self._step = 9  # degrees per frame for animation
-        self._scrambled = False
         
-    def action(self):
-        if self._scrambled:
-            solution = self.solver.solve(self.logic.clone())
-            logging.info('Solve Rubik\'s Cube. solution: %s', solution)
-            self.play_moves(solution)
-        else:
-            length = NUM_OF_SCRAMBLE_MOVES
-            tokens = list(MOVE_MAP.keys())
-            seq = []
-            last_face = ''
-            for _ in range(length):
+    def solve(self):
+        solution = self.solver.solve(self.logic.clone())
+        logging.info('Solve Rubik\'s Cube. solution: %s', solution)
+        self.play_moves(solution)
+
+    def scramble(self):
+        length = NUM_OF_SCRAMBLE_MOVES
+        tokens = list(MOVE_MAP.keys())
+        seq = []
+        last_face = ''
+        for _ in range(length):
+            m = random.choice(tokens)
+            # avoid same face twice
+            while m[0] == last_face:
                 m = random.choice(tokens)
-                # avoid same face twice
-                while m[0] == last_face:
-                    m = random.choice(tokens)
-                last_face = m[0]
-                seq.append(m)
-            logging.info('Scramble Rubik\'s Cube. random moves: %s', seq)
-            self.play_moves(seq)
-        self._scrambled = not self._scrambled
+            last_face = m[0]
+            seq.append(m)
+        logging.info('Scramble Rubik\'s Cube. random moves: %s', seq)
+        self.play_moves(seq)
 
     def is_scrambled(self):
-        return self._scrambled
+        return not self.logic.is_solved()
 
     def play_moves(self, moves, degrees_per_frame=9):
         logging.info('Play moves: %s', moves)
@@ -301,9 +296,8 @@ class ActionButton:
             action=click
         )
         self.btn.center = (40, 40)
-        self.btn.height = 50
-        self.btn.width = 160
-        self._main_title = 'Scramble'
+        self.btn.height = BUTTON_HEIGHT
+        self.btn.width = 90
         view.add_subview(self.btn)
 
     def disable(self):
@@ -314,21 +308,16 @@ class ActionButton:
         logging.debug("Enable action button")
         self.btn.enabled = True
 
-    def update_main_title(self, main_title):
-        logging.debug('Update button title to: %s', main_title)
-        self._main_title = main_title
-        self.btn.title = self._main_title
-
-    def set_sub_title(self, sub_title):
-        logging.debug('Set sub title to: %s', sub_title)
-        self.btn.title = self._main_title + ': ' + sub_title
+    def update_title(self, title):
+        logging.debug('Update button title to: %s', title)
+        self.btn.title = title
 
 class MoveButtons:
     def __init__(self, view, click_move):
-        btn_pos = (25, 100)
-        btn_offset = 10
-        btn_height = 50
-        btn_width = 50
+        btn_pos = (120, 40)
+        btn_offset = 5
+        btn_height = BUTTON_HEIGHT
+        btn_width = BUTTON_HEIGHT
         self.click_move = click_move
         self.buttons = []
         for move in MOVE_BUTTONS:
@@ -361,12 +350,35 @@ class MoveButtons:
         for btn in self.buttons:
             btn.enabled = False
 
+class InfoLabel:
+    def __init__(self):
+        self.label = None
+
+    def update(self, view):
+        if not self.label:
+            self.label = ui.Label(
+                text='Ready',
+                alignment=ui.ALIGN_RIGHT,
+                number_of_lines=1,
+                text_color='black'
+            )
+            self.label.height = 50
+            self.label.width = view.width - 10
+            view.add_subview(self.label)
+            self.label.center = (view.width / 2, view.height - (BUTTON_HEIGHT / 2) - 5)
+            view.add_subview(self.label)
+
+    def msg(self, msg=''):
+        if self.label:
+            self.label.text = msg
+
 class RubiksCubeView (ui.View):
     def __init__(self):
         self.flex = 'WH'
         self.update_interval = 0.05
         self.btn = ActionButton(self, self.click_action)
         self.move_buttons = MoveButtons(self, self.click_move)
+        self.info_label = InfoLabel()
         self.cube = Cube()
         self._waiting_idle = False
 
@@ -374,35 +386,40 @@ class RubiksCubeView (ui.View):
         self._waiting_idle = False
         self.move_buttons.disable()
         self.btn.disable()
-        self.cube.action()
+        if self.cube.is_scrambled():
+            self.info_label.msg('Solve...')
+            self.cube.solve()
+        else:
+            self.info_label.msg('Scramble..')
+            self.cube.scramble()
 
     def click_move(self, move):
         self._waiting_idle = False
         self.move_buttons.disable()
         self.btn.disable()
+        self.info_label.msg('Move: ' + move)
         self.cube.play_moves([move])
 
-    # Rotate the WHOLE cube physically around a world axis
     def rotate_cube(self, axis, angle_rad):
         self.cube.rotate_cube(axis, angle_rad)
 
     def update(self):
-        current_move, remaining_num_of_moves = self.cube.update()
-        self.update_button(current_move, remaining_num_of_moves)
-        self.set_needs_display()
-
-    def update_button(self, current_move, remaining_num_of_moves):
+        self.info_label.update(self)
+        current_move, num_of_remaining_moves = self.cube.update()
+        
         if current_move is None:
-            if remaining_num_of_moves > 0:
+            if num_of_remaining_moves > 0:
+                self.info_label.msg('Number of moves left: ' + str(num_of_remaining_moves))
                 self._waiting_idle = False
-                self.btn.set_sub_title(str(remaining_num_of_moves))
-            else:
-                if not self._waiting_idle:
-                    self._waiting_idle = True
-                    self.move_buttons.enable()
-                    self.btn.enable()
-                    title = 'Solve' if self.cube.is_scrambled() else 'Scramble'
-                    self.btn.update_main_title(title)
+            elif not self._waiting_idle:
+                self.info_label.msg('Ready')
+                self._waiting_idle = True
+                self.move_buttons.enable()
+                self.btn.enable()
+                title = 'Solve' if self.cube.is_scrambled() else 'Scramble'
+                self.btn.update_title(title)
+        
+        self.set_needs_display()
 
     def draw(self):
         all_faces = self.cube.faces_to_draw(
@@ -423,8 +440,6 @@ class RubiksCubeView (ui.View):
         path.stroke()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=LOG_LEVEL)
-
     rubiks_view = RubiksCubeView()
     rubiks_view.rotate_cube('y', radians(215))
     rubiks_view.rotate_cube('x', radians(-25))
