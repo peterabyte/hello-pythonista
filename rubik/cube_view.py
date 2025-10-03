@@ -398,6 +398,8 @@ class RubiksCubeView (ui.View):
         ui.set_color(FACE_COLOR_EDGE)
         path.stroke()
 
+logging.basicConfig(level=logging.DEBUG)
+
 if __name__ == '__main__':
     rubiks_view = RubiksCubeView()
     rubiks_view.rotate_cube('y', radians(215))
