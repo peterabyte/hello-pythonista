@@ -1,7 +1,5 @@
 # ---------- CubeModel (sticker-based) ----------
 # Faces order: U, R, F, D, L, B
-# Colors are single-letter face ids for clarity ('U','R','F','D','L','B')
-# You can map them to your FACE_COLORS in your UI if you later want to draw stickers.
 
 from collections import deque
 import copy
@@ -63,12 +61,10 @@ class CubeModel:
 
     # ---- Face turns (quarter-turn metric). Each mutates self.faces. ----
     # Notation: "U", "U'", "U2", ..., over standard Singmaster mapping.
-    # The side cycles were hand-checked; they're standard.
 
-    def U(self):  # Up face CW
+    def U(self):
         f = self.faces
         f[0] = rot_cw(f[0])
-        # side ring: F row0 <- R row0 <- B row0 <- L row0
         (f[2][0], f[2][1], f[2][2],
          f[1][0], f[1][1], f[1][2],
          f[5][0], f[5][1], f[5][2],
@@ -84,10 +80,9 @@ class CubeModel:
     def U2(self):
         for _ in range(2): self.U()
 
-    def D(self):  # Down face CW
+    def D(self):
         f = self.faces
         f[3] = rot_cw(f[3])
-        # F row2 -> L row2 -> B row2 -> R row2
         (f[2][6], f[2][7], f[2][8],
          f[4][6], f[4][7], f[4][8],
          f[5][6], f[5][7], f[5][8],
@@ -142,7 +137,6 @@ class CubeModel:
     def F(self):
         f = self.faces
         f[2] = rot_cw(f[2])
-        # U row2 -> R col0 -> D row0 -> L col2
         (f[0][6], f[0][7], f[0][8],
          f[1][0], f[1][3], f[1][6],
          f[3][2], f[3][1], f[3][0],
@@ -161,7 +155,6 @@ class CubeModel:
     def B(self):
         f = self.faces
         f[5] = rot_cw(f[5])
-        # U row0 -> L col0 -> D row2 -> R col2
         (f[0][0], f[0][1], f[0][2],
          f[4][0], f[4][3], f[4][6],
          f[3][8], f[3][7], f[3][6],
@@ -195,7 +188,6 @@ class CubeModel:
             self.move(m)
 
     def as_string(self):
-        # Simple string for debugging
         return ';'.join(''.join(face) for face in self.faces)
 
     def from_string(faces_str):
