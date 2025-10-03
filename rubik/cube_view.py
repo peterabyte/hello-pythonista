@@ -22,14 +22,6 @@ FACE_COLORS = {
     'left':   (0, 0, 1),    # Blue
     'right':  (0, 1, 0),    # Green
 }
-COLORS = {
-    (1, 0, 0): 'r',
-    (1, 0.5, 0): 'o',
-    (1, 1, 1): 'w',
-    (1, 1, 0): 'y',
-    (0, 0, 1): 'b',
-    (0, 1, 0): 'g',
-}
 FACE_COLOR_INNER = 'gray'
 FACE_COLOR_EDGE = 'black'
 
@@ -41,8 +33,6 @@ FACES = [
     ([1, 2, 6, 5], 'right'),
     ([0, 3, 7, 4], 'left'),
 ]
-
-# ---------- UI integration helpers ----------
 
 # Map move notation to: (axis, layer_index, quarter_turns, direction)
 # Your cube local axes: x (L/R), y (D/U), z (B/F); layer_index: -1,0,1
@@ -58,6 +48,8 @@ MOVE_MAP = {
 
 BUTTON_HEIGHT = 40
 MOVE_BUTTONS = ['U', 'D', 'L', 'R', 'F', 'B']
+
+DEGREES_PER_FRAME = 9
 
 def play_moves(cube, moves):
     cube.play_moves(moves)
@@ -84,7 +76,7 @@ class Cubelet:
 
 class Cube:
     def __init__(self):
-        self.global_R = np.identity(3)    # cube's physical orientation in world space
+        self.global_R = np.identity(3) # cube's physical orientation in world space
         self.cubelets = [Cubelet((x, y, z)) for x in [-1, 0, 1] for y in [-1, 0, 1] for z in [-1, 0, 1]]
         # handy base offsets for drawing (local cubelet corners)
         d = CUBE_SIZE / 2.0
@@ -98,12 +90,12 @@ class Cube:
             [ d,  d,  d],    # 6
             [-d,  d,  d],    # 7
         ])
-        self.logic = CubeModel()         # logical solver model
-        self.solver = IdaStarSolver()   # the solver
+        self.logic = CubeModel()
+        self.solver = IdaStarSolver()
         self._move_queue = deque()
         self._current_move = None
         self._remaining = 0
-        self._step = 9  # degrees per frame for animation
+        self._step = DEGREES_PER_FRAME  # degrees per frame for animation
         
     def solve(self):
         solution = self.solver.solve(self.logic.clone())
@@ -134,7 +126,6 @@ class Cube:
         for token in moves:
             axis, layer, q, dir_ = MOVE_MAP[token]
             for _ in range(q):
-                # store a 90° turn broken into small steps
                 total = 90 * dir_
                 self._move_queue.append((axis, layer, total))
         self._current_move = None
@@ -180,24 +171,15 @@ class Cube:
         return None
 
     def rotate_slice(self, axis, layer_index, angle_rad):
-        # 1. Local axis unit vector (cube space)
         local_axis = np.zeros(3)
         local_axis[['x', 'y', 'z'].index(axis)] = 1.0
-
-        # 2. Convert to world axis using the cube’s global rotation
         world_axis = self.global_R @ local_axis
-
-        # 3. Build rotation matrix around this axis
         R = self.rotation_matrix_from_vector(world_axis, angle_rad)
-
-        # 4. For each cubelet, check if it's in the slice (by projection onto local axis)
         spacing = CUBE_SIZE * CUBE_GAP
         for cubelet in self.cubelets:
-            # Project center into cube-local coordinates
             local_center = np.linalg.inv(self.global_R) @ cubelet.center
             coord = round(local_center[['x','y','z'].index(axis)] / spacing)
             if coord == layer_index:
-                # Rotate in world coordinates
                 cubelet.center = R @ cubelet.center
                 cubelet.rotation = R @ cubelet.rotation
 
@@ -221,7 +203,6 @@ class Cube:
             return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
     def rotation_matrix_from_vector(self, axis_vec, theta):
-        """Rotation matrix for arbitrary axis (Rodrigues)."""
         axis_vec = axis_vec / np.linalg.norm(axis_vec)
         x, y, z = axis_vec
         c, s = cos(theta), sin(theta)
@@ -235,13 +216,8 @@ class Cube:
     def faces_to_draw(self, offset=(0, 0)):
         all_faces = []
         for c in self.cubelets:
-            # Build cubelet vertices in WORLD space:
-            # rotate local offsets by the cubelet's own orientation, then translate by center
             verts_world = (self.local_offsets @ c.rotation.T) + c.center
-
-            # We now draw in world coords (no extra global_R here, since we rotate the cube physically)
             projected = self.project(verts_world, offset=offset)
-
             x, y, z = c.grid_pos
             visible_faces = {
                 'back':     (z == -1),
@@ -268,23 +244,6 @@ class Cube:
             reverse=True
         )
         return all_faces
-
-    def state(self):
-        state = {}
-        for face, color in FACE_COLORS.items():
-            state[face] = {}
-        for c in self.cubelets:
-            x, y, z = c.grid_pos
-            key = (x.item(), y.item(), z.item())
-            for _, face_name in FACES:
-                if ((face_name == 'front' and z == 1) or
-                    (face_name == 'back' and z == -1) or
-                    (face_name == 'left' and x == -1) or
-                    (face_name == 'right' and x == 1) or
-                    (face_name == 'top' and y == 1) or
-                    (face_name == 'bottom' and y == -1)):
-                    state[face_name][key] = COLORS[FACE_COLORS[face_name]]
-        return state
 
 class ActionButton:
     def __init__(self, view, click):
