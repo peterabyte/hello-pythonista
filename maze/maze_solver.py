@@ -1,10 +1,10 @@
 from mazes import Maze, Direction
 import random
 
-def left_hand(maze: Maze):
+def left_hand_on_wall(maze: Maze):
 	return LeftHandOnWall(maze)
 
-def right_hand(maze: Maze):
+def right_hand_on_wall(maze: Maze):
 	return RightHandOnWall(maze)
 	
 def random_mouse(maze: Maze):

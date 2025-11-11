@@ -12,6 +12,41 @@ class Direction(Enum):
 	UP = 3
 	DOWN = 4
 
+CELL_BLOCKED = '#'
+CELL_FREE = ' '
+
+class MazeModel:
+  def __init__(self, map, entrance_coords, exit_coords):
+    self.map = map
+    self.entrance_coords = entrance_coords
+    self.exit_coords = exit_coords
+
+  def is_blocked(self, coords):
+    return self.map[coords[1]][coords[0]] == CELL_BLOCKED
+
+  def is_exit(self, coords):
+    return self.exit_coords[0] == coords[0] and self.exit_coords[1] == coords[1]
+
+  def get_entrance_coords(self):
+    return self.entrance_coords
+
+  def get_exit_coords(self):
+    return self.exit_coords
+
+  def get_width(self):
+    return len(self.map[0])
+
+  def get_height(self):
+    return len(self.map)
+
+  def as_string(self):
+    str_map = ''
+    str_map += f"entrance: {self.entrance_coords}\n"
+    str_map += f"exit: {self.exit_coords}"
+    for row in self.map:
+      str_map += '\n' + ''.join(row)
+    return str_map
+
 class Maze:
 	image_size = 64
 	margin = 16
